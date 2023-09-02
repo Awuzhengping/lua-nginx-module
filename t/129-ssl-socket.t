@@ -476,7 +476,7 @@ The certificate for "openresty.org" does not contain the name "blah.openresty.or
     resolver $TEST_NGINX_RESOLVER ipv6=off;
     lua_ssl_trusted_certificate ../html/trusted.crt;
     lua_socket_log_errors off;
-    lua_ssl_verify_depth 2;
+    lua_ssl_verify_depth 3;
     location /t {
         #set $port 5000;
         set $port $TEST_NGINX_MEMCACHED_PORT;
@@ -634,7 +634,7 @@ SSL reused session
     server_tokens off;
     resolver $TEST_NGINX_RESOLVER ipv6=off;
     lua_ssl_trusted_certificate ../html/trusted.crt;
-    lua_ssl_verify_depth 2;
+    lua_ssl_verify_depth 3;
     location /t {
         #set $port 5000;
         set $port $TEST_NGINX_MEMCACHED_PORT;
@@ -878,7 +878,7 @@ SSL reused session
     server_tokens off;
     resolver $TEST_NGINX_RESOLVER ipv6=off;
     lua_ssl_trusted_certificate ../html/trusted.crt;
-    lua_ssl_verify_depth 2;
+    lua_ssl_verify_depth 3;
     location /t {
         set $port $TEST_NGINX_MEMCACHED_PORT;
 
@@ -953,7 +953,7 @@ SSL reused session
     server_tokens off;
     resolver $TEST_NGINX_RESOLVER ipv6=off;
     lua_ssl_trusted_certificate ../html/trusted.crt;
-    lua_ssl_verify_depth 2;
+    lua_ssl_verify_depth 3;
     location /t {
         #set $port 5000;
         set $port $TEST_NGINX_MEMCACHED_PORT;
@@ -1107,7 +1107,7 @@ $/
 --- error_log eval
 [
 'lua ssl server name: "openresty.org"',
-qr/SSL: TLSv1\.2, cipher: "(?:ECDHE-RSA-AES(?:256|128)-GCM-SHA(?:384|256)|ECDHE-(?:RSA|ECDSA)-CHACHA20-POLY1305) TLSv1\.2/,
+qr/SSL: TLSv1\.[23], cipher: "(?:(?:ECDHE-RSA-AES(?:256|128)-GCM-SHA(?:384|256)|ECDHE-(?:RSA|ECDSA)-CHACHA20-POLY1305) TLSv1\.2|TLS_AES_128_GCM_SHA256 Kx=GENERIC Au=GENERIC Enc=AESGCM)/,
 ]
 --- no_error_log
 SSL reused session
@@ -1293,6 +1293,7 @@ qr/SSL: TLSv1, cipher: "ECDHE-RSA-AES256-SHA (SSLv3|TLSv1)/]
 SSL reused session
 [error]
 [alert]
+--- skip_eval: 8:$ENV{TEST_NGINX_USE_HTTP3}
 
 
 
@@ -1362,7 +1363,7 @@ failed to send http request: closed
 --- grep_error_log_out
 --- error_log eval
 [
-qr/\[(crit|error)\] .*?SSL_do_handshake\(\) failed .*?(unsupported protocol|no protocols available)/,
+qr/\[(crit|error)\] .*?SSL_do_handshake\(\) failed .*?(unsupported protocol|no protocols available|.*?routines:OPENSSL_internal:NO_SUPPORTED_VERSIONS_ENABLED)/,
 'lua ssl server name: "openresty.org"',
 ]
 --- no_error_log
@@ -1378,7 +1379,7 @@ SSL reused session
     server_tokens off;
     resolver $TEST_NGINX_RESOLVER ipv6=off;
     lua_ssl_trusted_certificate ../html/trusted.crt;
-    lua_ssl_verify_depth 2;
+    lua_ssl_verify_depth 3;
     location /t {
         #set $port 5000;
         set $port $TEST_NGINX_MEMCACHED_PORT;
@@ -1455,7 +1456,7 @@ SSL reused session
     server_tokens off;
     resolver $TEST_NGINX_RESOLVER ipv6=off;
     lua_ssl_trusted_certificate ../html/trusted.crt;
-    lua_ssl_verify_depth 2;
+    lua_ssl_verify_depth 3;
     location /t {
         #set $port 5000;
         set $port $TEST_NGINX_MEMCACHED_PORT;
@@ -1535,7 +1536,7 @@ SSL reused session
     server_tokens off;
     resolver $TEST_NGINX_RESOLVER ipv6=off;
     lua_ssl_trusted_certificate ../html/trusted.crt;
-    lua_ssl_verify_depth 2;
+    lua_ssl_verify_depth 3;
     location /t {
         #set $port 5000;
         set $port $TEST_NGINX_MEMCACHED_PORT;
@@ -1950,9 +1951,9 @@ GET /t
 # entry extension, in other words, revoke still works even if CRL has expired.
 $Test::Nginx::Util::NginxVersion >= 1.019001 ?
 
-"connected: 1
-failed to do SSL handshake: 23: certificate revoked
-failed to send http request: closed\n" :
+qr/connected: 1
+failed to do SSL handshake: (?:23: certificate revoked|8: CRL signature failure)
+failed to send http request: closed\n/ms :
 
 "connected: 1
 failed to do SSL handshake: 12: CRL has expired
@@ -2568,8 +2569,8 @@ qr/\[error\] .* ngx.socket sslhandshake: expecting 1 ~ 5 arguments \(including t
 --- no_error_log
 [alert]
 --- timeout: 10
---- curl_error
-curl: (52) Empty reply from server
+--- curl_error eval
+qr/curl: \(52\) Empty reply from server|HTTP\/3 stream 0 reset by server/
 
 
 
@@ -2655,7 +2656,7 @@ lua ssl free session: ([0-9A-F]+)
 $/
 --- error_log eval
 ['lua ssl server name: "test.com"',
-qr/SSL: TLSv1.3, cipher: "TLS_AES_256_GCM_SHA384 TLSv1.3/]
+qr/SSL: TLSv1.3, cipher: "(?:TLS_AES_256_GCM_SHA384 TLSv1.3|TLS_AES_128_GCM_SHA256 Kx=GENERIC)/]
 --- no_error_log
 SSL reused session
 [error]
@@ -2667,6 +2668,7 @@ SSL reused session
 === TEST 33: explicit cipher configuration - TLSv1.3
 --- skip_openssl: 8: < 1.1.1
 --- skip_nginx: 8: < 1.19.4
+--- skip_eval: 8:$ENV{TEST_NGINX_USE_HTTP3}
 --- http_config
     server {
         listen              unix:$TEST_NGINX_HTML_DIR/nginx.sock ssl;
@@ -2760,6 +2762,7 @@ SSL reused session
 === TEST 34: explicit cipher configuration not in the default list - TLSv1.3
 --- skip_openssl: 8: < 1.1.1
 --- skip_nginx: 8: < 1.19.4
+--- skip_eval: 8:$ENV{TEST_NGINX_USE_HTTP3}
 --- http_config
     server {
         listen              unix:$TEST_NGINX_HTML_DIR/nginx.sock ssl;

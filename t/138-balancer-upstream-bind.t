@@ -135,7 +135,10 @@ ok
 
 --- request
     GET /t
---- response_body
-ok
+--- error_code eval
+$Test::Nginx::Util::NginxVersion >= 1.019009 ? 500 : 200
+--- response_body eval
+$Test::Nginx::Util::NginxVersion >= 1.019009 ?
+qr/500 Internal Server Error/ : "ok"
 --- error_log
 bind(100.100.100.100) failed (99: Cannot assign requested address)
